@@ -16,8 +16,9 @@ class AssetController extends Controller
     public function index(Request $request, AssetRouterService $service): View
     {
         $assets = $service->search($request, $request->user());
+        $providerCounts = $service->providerCounts($request, $request->user());
 
-        return view('asset-router.images', compact('assets'));
+        return view('asset-router.images', compact('assets', 'providerCounts'));
     }
 
     public function show(AssetRouterAsset $asset, AssetRouterService $service): View

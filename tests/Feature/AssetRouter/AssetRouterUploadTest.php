@@ -76,6 +76,32 @@ class AssetRouterUploadTest extends TestCase
         $this->assertDatabaseCount('asset_router_jobs', 0);
     }
 
+    public function test_web_ajax_upload_returns_asset_router_links_for_drag_upload()
+    {
+        config([
+            'asset-router.r2.enabled' => false,
+            'asset-router.local_root' => storage_path('framework/testing/asset-router'),
+            'asset-router.public_base_url' => 'https://assets.example.test',
+            'asset-router.members_base_url' => 'https://assets.example.test/m',
+        ]);
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson(route('asset-router.upload.store'), [
+            'file' => UploadedFile::fake()->create('drag-upload.png', 8, 'image/png'),
+            'visibility' => 'public',
+        ], [
+            'X-Requested-With' => 'XMLHttpRequest',
+        ]);
+
+        $asset = AssetRouterAsset::query()->firstOrFail();
+
+        $response->assertOk()
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('data.asset.id', $asset->id)
+            ->assertJsonPath('data.links.url', "https://assets.example.test/{$asset->key}");
+    }
+
     public function test_sanctum_api_can_upload_asset_router_asset()
     {
         config([
@@ -344,5 +370,114 @@ class AssetRouterUploadTest extends TestCase
             'etag' => 'r2-etag',
             'status' => 'present',
         ]);
+    }
+
+    public function test_import_providers_merges_existing_r2_and_github_assets()
+    {
+        config([
+            'asset-router.r2.account_id' => 'cf-account',
+            'asset-router.r2.api_token' => 'cf-token',
+            'asset-router.r2.bucket' => 'second-brain-assets-prod',
+            'asset-router.public_base_url' => 'https://assets.example.test',
+            'asset-router.members_base_url' => 'https://assets.example.test/m',
+            'asset-router.github.repo' => 'luowei/second-brain-image-assets',
+            'asset-router.github.branch' => 'main',
+            'asset-router.github.jsdelivr_base_url' => 'https://cdn.jsdelivr.net/gh/luowei/second-brain-image-assets@main',
+        ]);
+
+        Http::fake([
+            'api.github.com/repos/luowei/second-brain-image-assets/git/trees/main?recursive=1' => Http::response([
+                'tree' => [[
+                    'path' => '2026/05/31/public.png',
+                    'type' => 'blob',
+                    'size' => 123,
+                    'sha' => 'github-sha',
+                ]],
+            ]),
+            'api.cloudflare.com/client/v4/accounts/cf-account/r2/buckets/second-brain-assets-prod/objects*' => Http::response([
+                'result' => [[
+                    'key' => 'i/2026/05/31/public.png',
+                    'size' => 456,
+                    'etag' => 'r2-etag',
+                    'uploaded' => '2026-05-31T00:00:00Z',
+                    'httpMetadata' => ['contentType' => 'image/png'],
+                ]],
+                'result_info' => [
+                    'is_truncated' => false,
+                ],
+            ]),
+        ]);
+
+        $this->artisan('asset-router:import-providers')
+            ->expectsOutput('Imported 1 R2 object(s), 1 GitHub object(s).')
+            ->assertExitCode(0);
+
+        $this->assertDatabaseCount('asset_router_assets', 1);
+        $this->assertDatabaseHas('asset_router_assets', [
+            'key' => 'i/2026/05/31/public.png',
+            'visibility' => 'public',
+            'size_bytes' => 456,
+            'status' => 'active',
+            'created_by' => 'provider-import',
+        ]);
+        $this->assertDatabaseHas('asset_router_provider_objects', [
+            'provider' => 'r2',
+            'provider_key' => 'i/2026/05/31/public.png',
+            'etag' => 'r2-etag',
+            'status' => 'present',
+        ]);
+        $this->assertDatabaseHas('asset_router_provider_objects', [
+            'provider' => 'github-jsdelivr',
+            'provider_key' => '2026/05/31/public.png',
+            'etag' => 'github-sha',
+            'status' => 'present',
+        ]);
+    }
+
+    public function test_imported_unowned_assets_are_visible_and_filterable_in_asset_router_images()
+    {
+        config([
+            'asset-router.public_base_url' => 'https://assets.example.test',
+            'asset-router.github.jsdelivr_base_url' => 'https://cdn.jsdelivr.net/gh/luowei/second-brain-image-assets@main',
+        ]);
+
+        $user = User::factory()->create();
+        view()->share([
+            '_group' => $user->group,
+            '_is_notice' => '',
+        ]);
+        $asset = AssetRouterAsset::query()->create([
+            'owner_user_id' => null,
+            'key' => 'i/2026/05/31/imported.png',
+            'display_name' => 'Imported public asset',
+            'original_name' => 'imported.png',
+            'mime_type' => 'image/png',
+            'extension' => 'png',
+            'size_bytes' => 128,
+            'visibility' => 'public',
+            'asset_type' => 'image',
+            'status' => 'active',
+            'canonical_url' => 'https://assets.example.test/i/2026/05/31/imported.png',
+            'members_url' => 'https://assets.example.test/m/i/2026/05/31/imported.png',
+            'primary_provider' => 'r2',
+            'created_by' => 'provider-import',
+        ]);
+
+        $asset->providerObjects()->create([
+            'provider' => 'r2',
+            'provider_key' => $asset->key,
+            'url' => $asset->canonical_url,
+            'status' => 'present',
+        ]);
+
+        $this->assertDatabaseHas('asset_router_assets', [
+            'id' => $asset->id,
+            'owner_user_id' => null,
+            'display_name' => 'Imported public asset',
+        ]);
+
+        $this->actingAs($user)->get(route('asset-router.images.show', $asset))
+            ->assertOk()
+            ->assertSee('Imported public asset');
     }
 }

@@ -10,6 +10,7 @@ use App\Models\AssetRouter\AssetRouterJob;
 use App\Models\AssetRouter\AssetRouterProviderObject;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -101,9 +102,31 @@ class AssetRouterService
 
     public function search(Request $request, ?User $user = null, bool $global = false): LengthAwarePaginator
     {
+        return $this->searchQuery($request, $user, $global)
+            ->latest()
+            ->paginate((int) $request->query('per_page', 40))
+            ->withQueryString();
+    }
+
+    public function providerCounts(Request $request, ?User $user = null, bool $global = false): array
+    {
+        $base = $this->searchQuery($request, $user, $global, false);
+
+        return [
+            'all' => (clone $base)->count(),
+            AssetRouterProvider::R2 => (clone $base)->whereHas('providerObjects', fn ($query) => $query->where('provider', AssetRouterProvider::R2))->count(),
+            AssetRouterProvider::GithubJsdelivr => (clone $base)->whereHas('providerObjects', fn ($query) => $query->where('provider', AssetRouterProvider::GithubJsdelivr))->count(),
+        ];
+    }
+
+    private function searchQuery(Request $request, ?User $user = null, bool $global = false, bool $includeProviderFilter = true): Builder
+    {
         return AssetRouterAsset::query()
             ->with('providerObjects')
-            ->when(! $global && $user, fn ($query) => $query->where('owner_user_id', $user->id))
+            ->when(! $global && $user, fn ($query) => $query->where(function ($query) use ($user) {
+                $query->where('owner_user_id', $user->id)
+                    ->orWhereNull('owner_user_id');
+            }))
             ->when($request->query('keyword'), function ($query, $keyword) {
                 $query->where(function ($query) use ($keyword) {
                     $query->where('display_name', 'like', "%{$keyword}%")
@@ -113,9 +136,9 @@ class AssetRouterService
                 });
             })
             ->when($request->query('visibility'), fn ($query, $visibility) => $query->where('visibility', $visibility))
-            ->latest()
-            ->paginate((int) $request->query('per_page', 40))
-            ->withQueryString();
+            ->when($includeProviderFilter && $request->query('provider'), function ($query, $provider) {
+                $query->whereHas('providerObjects', fn ($query) => $query->where('provider', $provider));
+            });
     }
 
     public function rename(AssetRouterAsset $asset, string $displayName): AssetRouterAsset
@@ -195,7 +218,7 @@ class AssetRouterService
 
     public function assertCanManage(AssetRouterAsset $asset, ?User $user, bool $global = false): void
     {
-        if ($global || ($user && $asset->owner_user_id === $user->id)) {
+        if ($global || $asset->owner_user_id === null || ($user && $asset->owner_user_id === $user->id)) {
             return;
         }
 

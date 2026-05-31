@@ -2,7 +2,24 @@
 
 <x-app-layout>
     <div class="my-6 md:my-9 space-y-4">
+        <div class="bg-white rounded-md shadow-custom p-2 flex flex-wrap gap-2 text-sm">
+            @foreach([
+                '' => ['label' => '全部', 'count' => $providerCounts['all'] ?? 0],
+                'r2' => ['label' => 'R2 主图床', 'count' => $providerCounts['r2'] ?? 0],
+                'github-jsdelivr' => ['label' => 'GitHub / jsDelivr', 'count' => $providerCounts['github-jsdelivr'] ?? 0],
+            ] as $provider => $tab)
+                <a
+                    href="{{ route('asset-router.images', array_filter(array_merge(request()->except('page'), ['provider' => $provider]), fn ($value) => $value !== null && $value !== '')) }}"
+                    class="px-4 py-2 rounded flex items-center gap-2 {{ request('provider', '') === $provider ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}"
+                >
+                    <span>{{ $tab['label'] }}</span>
+                    <span class="text-xs {{ request('provider', '') === $provider ? 'text-indigo-100' : 'text-gray-500' }}">{{ $tab['count'] }}</span>
+                </a>
+            @endforeach
+        </div>
+
         <form class="bg-white rounded-md shadow-custom p-4 flex flex-col md:flex-row md:items-center gap-3" method="get" action="{{ route('asset-router.images') }}">
+            <input type="hidden" name="provider" value="{{ request('provider') }}">
             <input type="text" name="keyword" value="{{ request('keyword') }}" class="rounded bg-gray-100 border-0 text-sm md:w-72" placeholder="搜索名称、key、sha256">
             <select name="visibility" class="rounded bg-gray-100 border-0 text-sm md:w-44">
                 <option value="">全部可见性</option>
@@ -10,7 +27,7 @@
                 <option value="members" @selected(request('visibility') === 'members')>成员</option>
                 <option value="private" @selected(request('visibility') === 'private')>私有</option>
             </select>
-            <button class="py-2 px-4 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md text-sm font-semibold">搜索</button>
+            <button class="py-2 px-4 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md text-sm font-semibold">在当前分类搜索</button>
             <a href="{{ route('asset-router.upload') }}" class="py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm">上传</a>
         </form>
 
@@ -31,7 +48,7 @@
                         </div>
                         <p class="text-gray-500 truncate"><code>{{ $asset->key }}</code></p>
                         <p class="text-gray-500">{{ \App\Utils::formatSize($asset->size_bytes) }} · {{ $asset->mime_type }}</p>
-                        <p class="text-gray-500">Provider: {{ $asset->providerObjects->pluck('provider')->implode(', ') ?: 'unknown' }}</p>
+                        <p class="text-gray-500">Provider: {{ $asset->providerObjects->pluck('provider')->unique()->implode(', ') ?: 'unknown' }}</p>
                         <p><a class="text-blue-500 hover:text-blue-600 break-all" href="{{ $asset->url }}" target="_blank">{{ $asset->url }}</a></p>
                         <div class="pt-2 flex items-center gap-2">
                             <a href="{{ route('asset-router.images.show', $asset) }}" class="py-1.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs">详情</a>
@@ -41,7 +58,7 @@
                 </div>
             @empty
                 <div class="bg-white rounded-md shadow-custom p-8 md:col-span-2 xl:col-span-3">
-                    <x-no-data message="暂无 Asset Router 资源" />
+                    <x-no-data message="当前分类暂无 Asset Router 资源" />
                 </div>
             @endforelse
         </div>

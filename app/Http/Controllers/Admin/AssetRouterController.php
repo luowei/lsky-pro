@@ -11,6 +11,8 @@ use App\Models\AssetRouter\AssetRouterAsset;
 use App\Models\AssetRouter\AssetRouterJob;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AssetRouterController extends Controller
@@ -18,8 +20,9 @@ class AssetRouterController extends Controller
     public function assets(Request $request, AssetRouterService $service): View
     {
         $assets = $service->search($request, $request->user(), true);
+        $providerCounts = $service->providerCounts($request, $request->user(), true);
 
-        return view('admin.asset-router.assets', compact('assets'));
+        return view('admin.asset-router.assets', compact('assets', 'providerCounts'));
     }
 
     public function show(AssetRouterAsset $asset): View
@@ -47,6 +50,23 @@ class AssetRouterController extends Controller
         $providers = $service->summary();
 
         return view('admin.asset-router.providers', compact('providers'));
+    }
+
+    public function importProviders(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'source' => ['required', Rule::in(['all', 'r2', 'github'])],
+            'prefix' => ['nullable', 'string', 'max:255'],
+            'limit' => ['nullable', 'integer', 'min:0', 'max:100000'],
+        ]);
+
+        Artisan::call('asset-router:import-providers', [
+            '--source' => $validated['source'],
+            '--prefix' => $validated['prefix'] ?? '',
+            '--limit' => (int) ($validated['limit'] ?? 0),
+        ]);
+
+        return back()->with('success', trim(Artisan::output()) ?: 'Provider 导入已完成');
     }
 
     public function retry(AssetRouterJob $job): RedirectResponse

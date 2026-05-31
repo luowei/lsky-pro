@@ -2,7 +2,24 @@
 
 <x-app-layout>
     <div class="my-6 md:my-9 space-y-4">
+        <div class="bg-white rounded-md shadow-custom p-2 flex flex-wrap gap-2 text-sm">
+            @foreach([
+                '' => ['label' => '全部', 'count' => $providerCounts['all'] ?? 0],
+                'r2' => ['label' => 'R2 主图床', 'count' => $providerCounts['r2'] ?? 0],
+                'github-jsdelivr' => ['label' => 'GitHub / jsDelivr', 'count' => $providerCounts['github-jsdelivr'] ?? 0],
+            ] as $provider => $tab)
+                <a
+                    href="{{ route('admin.asset-router.assets', array_filter(array_merge(request()->except('page'), ['provider' => $provider]), fn ($value) => $value !== null && $value !== '')) }}"
+                    class="px-4 py-2 rounded flex items-center gap-2 {{ request('provider', '') === $provider ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}"
+                >
+                    <span>{{ $tab['label'] }}</span>
+                    <span class="text-xs {{ request('provider', '') === $provider ? 'text-indigo-100' : 'text-gray-500' }}">{{ $tab['count'] }}</span>
+                </a>
+            @endforeach
+        </div>
+
         <form class="bg-white rounded-md shadow-custom p-4 flex flex-col md:flex-row md:items-center gap-3" method="get" action="{{ route('admin.asset-router.assets') }}">
+            <input type="hidden" name="provider" value="{{ request('provider') }}">
             <input type="text" name="keyword" value="{{ request('keyword') }}" class="rounded bg-gray-100 border-0 text-sm md:w-72" placeholder="搜索名称、key、sha256">
             <select name="visibility" class="rounded bg-gray-100 border-0 text-sm md:w-44">
                 <option value="">全部可见性</option>
@@ -10,8 +27,9 @@
                 <option value="members" @selected(request('visibility') === 'members')>成员</option>
                 <option value="private" @selected(request('visibility') === 'private')>私有</option>
             </select>
-            <button class="py-2 px-4 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md text-sm font-semibold">搜索</button>
+            <button class="py-2 px-4 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md text-sm font-semibold">在当前分类搜索</button>
             <a href="{{ route('admin.asset-router.jobs') }}" class="py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm">任务</a>
+            <a href="{{ route('admin.asset-router.providers') }}" class="py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm">Provider</a>
         </form>
 
         <div class="bg-white rounded-md shadow-custom overflow-hidden">
@@ -34,11 +52,11 @@
                         </td>
                         <td class="px-4 py-3">{{ $asset->owner?->email ?: '-' }}</td>
                         <td class="px-4 py-3">{{ $asset->visibility }} · {{ $asset->status }}</td>
-                        <td class="px-4 py-3">{{ $asset->providerObjects->pluck('provider')->implode(', ') ?: '-' }}</td>
+                        <td class="px-4 py-3">{{ $asset->providerObjects->pluck('provider')->unique()->implode(', ') ?: '-' }}</td>
                         <td class="px-4 py-3">{{ $asset->created_at }}</td>
                     </tr>
                 @empty
-                    <tr><td class="px-4 py-8" colspan="5"><x-no-data message="暂无 Asset Router 资源" /></td></tr>
+                    <tr><td class="px-4 py-8" colspan="5"><x-no-data message="当前分类暂无 Asset Router 资源" /></td></tr>
                 @endforelse
                 </tbody>
             </table>
