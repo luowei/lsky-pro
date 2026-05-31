@@ -33,6 +33,10 @@
                         <p class="text-gray-500">{{ \App\Utils::formatSize($asset->size_bytes) }} · {{ $asset->mime_type }}</p>
                         <p class="text-gray-500">Provider: {{ $asset->providerObjects->pluck('provider')->implode(', ') ?: 'unknown' }}</p>
                         <p><a class="text-blue-500 hover:text-blue-600 break-all" href="{{ $asset->url }}" target="_blank">{{ $asset->url }}</a></p>
+                        <div class="pt-2 flex items-center gap-2">
+                            <a href="{{ route('asset-router.images.show', $asset) }}" class="py-1.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs">详情</a>
+                            <button type="button" class="copy-url py-1.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-xs" data-url="{{ $asset->url }}">复制 URL</button>
+                        </div>
                     </div>
                 </div>
             @empty
@@ -46,4 +50,12 @@
             {{ $assets->links() }}
         </div>
     </div>
+
+    @push('scripts')
+        <script>
+            $('.copy-url').on('click', function () {
+                navigator.clipboard.writeText($(this).data('url'))
+            })
+        </script>
+    @endpush
 </x-app-layout>

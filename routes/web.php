@@ -29,6 +29,7 @@ use App\Http\Controllers\Admin\StrategyController as AdminStrategyController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\ImageController as AdminImageController;
+use App\Http\Controllers\Admin\AssetRouterController as AdminAssetRouterController;
 
 Route::get('/', fn () => view('welcome'))
     ->name('/')
@@ -84,6 +85,14 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth.admin']], function () 
         Route::get('', [AdminImageController::class, 'index'])->name('admin.images');
         Route::put('{id}', [AdminImageController::class, 'update'])->name('admin.image.update');
         Route::delete('{id}', [AdminImageController::class, 'delete'])->name('admin.image.delete');
+    });
+
+    Route::group(['prefix' => 'asset-router'], function () {
+        Route::get('assets', [AdminAssetRouterController::class, 'assets'])->name('admin.asset-router.assets');
+        Route::get('assets/{asset}', [AdminAssetRouterController::class, 'show'])->name('admin.asset-router.assets.show');
+        Route::get('jobs', [AdminAssetRouterController::class, 'jobs'])->name('admin.asset-router.jobs');
+        Route::post('jobs/{job}/retry', [AdminAssetRouterController::class, 'retry'])->name('admin.asset-router.jobs.retry');
+        Route::post('jobs/{job}/run', [AdminAssetRouterController::class, 'run'])->name('admin.asset-router.jobs.run');
     });
 
     Route::group(['prefix' => 'groups'], function () {

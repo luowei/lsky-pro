@@ -39,6 +39,6 @@ class AssetRouterJob extends Model
 
     public function asset(): BelongsTo
     {
-        return $this->belongsTo(AssetRouterAsset::class, 'asset_id', 'id');
+        return $this->belongsTo(AssetRouterAsset::class, 'asset_id', 'id')->withTrashed();
     }
 }

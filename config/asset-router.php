@@ -26,4 +26,8 @@ return [
         'auto_dispatch' => env('ASSET_ROUTER_MIRROR_AUTO_DISPATCH', false),
         'queue' => env('ASSET_ROUTER_MIRROR_QUEUE', 'asset-router'),
     ],
+    'second_brain' => [
+        'sync_url' => env('ASSET_ROUTER_SECOND_BRAIN_SYNC_URL'),
+        'sync_token' => env('ASSET_ROUTER_SECOND_BRAIN_SYNC_TOKEN'),
+    ],
 ];

@@ -17,6 +17,15 @@
         </div>
 
         <div class="bg-white rounded-md shadow-custom p-4 space-y-3">
+            <p class="font-semibold text-gray-700">PicGo 兼容上传</p>
+            <x-code>curl -H "Authorization: Bearer &lt;token&gt;" \
+  -F "image=@image.png" \
+  -F "visibility=public" \
+  {{ url('/api/asset-router/v1/picgo/upload') }}</x-code>
+            <p class="text-sm text-gray-500">兼容字段：<code>file</code>、<code>image</code>、<code>source</code>、<code>smfile</code>；响应同时包含 <code>result[0]</code>、<code>data.url</code> 和 <code>data.links.url</code>。</p>
+        </div>
+
+        <div class="bg-white rounded-md shadow-custom p-4 space-y-3">
             <p class="font-semibold text-gray-700">状态</p>
             <x-code>curl {{ url('/api/asset-router/v1/status') }}</x-code>
         </div>

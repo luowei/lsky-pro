@@ -27,6 +27,16 @@ class AssetRouterStorage
         return $this->getLocal($key);
     }
 
+    public function delete(string $key): void
+    {
+        if (config('asset-router.r2.enabled')) {
+            $this->deleteR2($key);
+            return;
+        }
+
+        $this->deleteLocal($key);
+    }
+
     private function putLocal(string $key, UploadedFile $file): array
     {
         $root = rtrim(config('asset-router.local_root'), DIRECTORY_SEPARATOR);
@@ -51,6 +61,16 @@ class AssetRouterStorage
         }
 
         return File::get($target);
+    }
+
+    private function deleteLocal(string $key): void
+    {
+        $root = rtrim(config('asset-router.local_root'), DIRECTORY_SEPARATOR);
+        $target = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $key);
+
+        if (File::exists($target)) {
+            File::delete($target);
+        }
     }
 
     private function putR2(string $key, UploadedFile $file): array
@@ -87,6 +107,14 @@ class AssetRouterStorage
         ]);
 
         return (string) $result['Body'];
+    }
+
+    private function deleteR2(string $key): void
+    {
+        $this->r2Client()->deleteObject([
+            'Bucket' => config('asset-router.r2.bucket'),
+            'Key' => $key,
+        ]);
     }
 
     private function r2Client(): S3Client

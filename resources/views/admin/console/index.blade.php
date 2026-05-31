@@ -12,37 +12,29 @@
         <div class="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <div class="flex justify-between rounded-md bg-white p-3 overflow-hidden shadow-custom">
                 <div class="flex flex-col justify-between space-y-2 w-[80%]">
-                    <p class="font-bold text-2xl text-red-700 truncate">
-                        {{ \App\Utils::shortenNumber(\App\Models\Image::query()->count()) }}
-                    </p>
-                    <p class="text-md text-gray-600">图片数量</p>
+                    <p class="font-bold text-2xl text-red-700 truncate">{{ \App\Utils::shortenNumber($assetRouterOverview['total']) }}</p>
+                    <p class="text-md text-gray-600">Asset 资源</p>
                 </div>
-                <i class="fas fa-images text-red-600 text-2xl"></i>
+                <i class="fas fa-route text-red-600 text-2xl"></i>
             </div>
             <div class="flex justify-between rounded-md bg-white p-3 overflow-hidden shadow-custom">
                 <div class="flex flex-col justify-between space-y-2 w-[80%]">
-                    <p class="font-bold text-2xl text-lime-700 truncate">
-                        {{ \App\Utils::shortenNumber(\App\Models\Album::query()->count()) }}
-                    </p>
-                    <p class="text-md text-gray-600">相册数量</p>
+                    <p class="font-bold text-2xl text-lime-700 truncate">{{ \App\Utils::shortenNumber($assetRouterOverview['public']) }}</p>
+                    <p class="text-md text-gray-600">公开资源</p>
                 </div>
-                <i class="fas fa-tags text-lime-600 text-2xl"></i>
+                <i class="fas fa-globe text-lime-600 text-2xl"></i>
             </div>
             <div class="flex justify-between rounded-md bg-white p-3 overflow-hidden shadow-custom">
                 <div class="flex flex-col justify-between space-y-2 w-[80%]">
-                    <p class="font-bold text-2xl text-blue-700 truncate">
-                        {{ \App\Utils::shortenNumber(\App\Models\User::query()->count()) }}
-                    </p>
-                    <p class="text-md text-gray-600">用户数量</p>
+                    <p class="font-bold text-2xl text-blue-700 truncate">{{ \App\Utils::shortenNumber($assetRouterOverview['private']) }}</p>
+                    <p class="text-md text-gray-600">私有资源</p>
                 </div>
-                <i class="fas fa-users text-blue-600 text-2xl"></i>
+                <i class="fas fa-lock text-blue-600 text-2xl"></i>
             </div>
             <div class="flex justify-between rounded-md bg-white p-3 overflow-hidden shadow-custom">
                 <div class="flex flex-col justify-between space-y-2 w-[80%]">
-                    <p class="font-bold text-2xl text-cyan-700 truncate">
-                        {{ \App\Utils::formatSize(\App\Models\Image::query()->sum('size') * 1024) }}
-                    </p>
-                    <p class="text-md text-gray-600">占用储存</p>
+                    <p class="font-bold text-2xl text-cyan-700 truncate">{{ \App\Utils::formatSize($assetRouterOverview['size']) }}</p>
+                    <p class="text-md text-gray-600">Asset 体积</p>
                 </div>
                 <i class="fas fa-server text-cyan-600 text-2xl"></i>
             </div>
@@ -74,6 +66,34 @@
                     <p class="text-md text-gray-600">本月上传</p>
                 </div>
                 <i class="fas fa-upload text-zinc-600 text-2xl"></i>
+            </div>
+            <div class="flex justify-between rounded-md bg-white p-3 overflow-hidden shadow-custom">
+                <div class="flex flex-col justify-between space-y-2 w-[80%]">
+                    <p class="font-bold text-2xl text-amber-700 truncate">{{ \App\Utils::shortenNumber($assetRouterOverview['queued_mirrors']) }}</p>
+                    <p class="text-md text-gray-600">待镜像</p>
+                </div>
+                <i class="fas fa-code-branch text-amber-600 text-2xl"></i>
+            </div>
+            <div class="flex justify-between rounded-md bg-white p-3 overflow-hidden shadow-custom">
+                <div class="flex flex-col justify-between space-y-2 w-[80%]">
+                    <p class="font-bold text-2xl text-red-700 truncate">{{ \App\Utils::shortenNumber($assetRouterOverview['failed_mirrors']) }}</p>
+                    <p class="text-md text-gray-600">镜像失败</p>
+                </div>
+                <i class="fas fa-exclamation-circle text-red-600 text-2xl"></i>
+            </div>
+            <div class="flex justify-between rounded-md bg-white p-3 overflow-hidden shadow-custom">
+                <div class="flex flex-col justify-between space-y-2 w-[80%]">
+                    <p class="font-bold text-2xl text-gray-700 truncate">{{ \App\Utils::shortenNumber($assetRouterOverview['lsky_images']) }}</p>
+                    <p class="text-md text-gray-600">Lsky Legacy 图片</p>
+                </div>
+                <i class="fas fa-images text-gray-600 text-2xl"></i>
+            </div>
+            <div class="flex justify-between rounded-md bg-white p-3 overflow-hidden shadow-custom">
+                <div class="flex flex-col justify-between space-y-2 w-[80%]">
+                    <p class="font-bold text-2xl text-indigo-700 truncate">{{ \App\Utils::shortenNumber($assetRouterOverview['users']) }}</p>
+                    <p class="text-md text-gray-600">用户数量</p>
+                </div>
+                <i class="fas fa-users text-indigo-600 text-2xl"></i>
             </div>
         </div>
 

@@ -86,6 +86,14 @@
                     <x-slot name="icon"><i class="fas fa-images text-blue-500"></i></x-slot>
                     <x-slot name="name">Lsky 图片管理</x-slot>
                 </x-nav-link>
+                <x-nav-link :href="route('admin.asset-router.assets')" :active="request()->is('admin/asset-router/assets*')">
+                    <x-slot name="icon"><i class="fas fa-route text-blue-500"></i></x-slot>
+                    <x-slot name="name">Asset 资源管理</x-slot>
+                </x-nav-link>
+                <x-nav-link :href="route('admin.asset-router.jobs')" :active="request()->is('admin/asset-router/jobs*')">
+                    <x-slot name="icon"><i class="fas fa-tasks text-blue-500"></i></x-slot>
+                    <x-slot name="name">Asset 任务</x-slot>
+                </x-nav-link>
                 <x-nav-link :href="route('admin.strategies')" :active="request()->is('admin/strategies*')">
                     <x-slot name="icon"><i class="fas fa-hdd text-blue-500"></i></x-slot>
                     <x-slot name="name">储存策略</x-slot>

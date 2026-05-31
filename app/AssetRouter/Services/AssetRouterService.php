@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class AssetRouterService
 {
@@ -21,13 +22,14 @@ class AssetRouterService
         private AssetKeyFactory $keyFactory,
         private AssetUrlBuilder $urlBuilder,
         private AssetRouterStorage $storage,
+        private SecondBrainAssetSyncService $secondBrainSync,
     ) {
     }
 
     public function upload(Request $request, ?User $user = null): AssetRouterAsset
     {
         /** @var UploadedFile $file */
-        $file = $request->file('file');
+        $file = $this->uploadedFile($request);
         $visibility = AssetRouterVisibility::normalize($request->input('visibility', config('asset-router.default_visibility')));
         $sha256 = hash_file('sha256', $file->getRealPath());
         $md5 = md5_file($file->getRealPath());
@@ -91,6 +93,8 @@ class AssetRouterService
                 }
             }
 
+            $this->secondBrainSync->queue($asset, 'asset.created');
+
             return $asset->fresh(['providerObjects', 'jobs']);
         });
     }
@@ -114,6 +118,81 @@ class AssetRouterService
             ->withQueryString();
     }
 
+    public function rename(AssetRouterAsset $asset, string $displayName): AssetRouterAsset
+    {
+        $asset->forceFill([
+            'display_name' => $displayName,
+        ])->save();
+
+        return $asset->fresh(['providerObjects', 'jobs']);
+    }
+
+    public function changeVisibility(AssetRouterAsset $asset, string $visibility): AssetRouterAsset
+    {
+        $visibility = AssetRouterVisibility::normalize($visibility);
+        $wasPublic = AssetRouterVisibility::isPublic($asset->visibility);
+        $willBePublic = AssetRouterVisibility::isPublic($visibility);
+
+        DB::transaction(function () use ($asset, $visibility, $wasPublic, $willBePublic) {
+            $asset->forceFill([
+                'visibility' => $visibility,
+                'status' => $willBePublic && ! $wasPublic ? 'pending_mirror' : 'active',
+            ])->save();
+
+            if ($willBePublic && ! $wasPublic) {
+                AssetRouterJob::query()->create([
+                    'asset_id' => $asset->id,
+                    'type' => 'mirror_public_to_github',
+                    'status' => 'queued',
+                    'payload' => [
+                        'key' => $asset->key,
+                        'repo' => config('asset-router.github.repo'),
+                        'branch' => config('asset-router.github.branch'),
+                    ],
+                ]);
+            }
+
+            $this->secondBrainSync->queue($asset, 'asset.visibility_changed');
+        });
+
+        return $asset->fresh(['providerObjects', 'jobs']);
+    }
+
+    public function delete(AssetRouterAsset $asset, bool $deleteObject = false): void
+    {
+        DB::transaction(function () use ($asset, $deleteObject) {
+            if ($deleteObject) {
+                try {
+                    $this->storage->delete($asset->key);
+                } catch (\Throwable $e) {
+                    throw new RuntimeException("Failed to delete primary object {$asset->key}: {$e->getMessage()}", previous: $e);
+                }
+            }
+
+            $asset->providerObjects()->update([
+                'status' => 'deleted',
+                'last_checked_at' => now(),
+            ]);
+            $asset->jobs()->whereIn('status', ['queued', 'failed'])->update([
+                'status' => 'cancelled',
+            ]);
+            $asset->forceFill([
+                'status' => 'deleted',
+            ])->save();
+            $this->secondBrainSync->queue($asset, 'asset.deleted');
+            $asset->delete();
+        });
+    }
+
+    public function assertCanManage(AssetRouterAsset $asset, ?User $user, bool $global = false): void
+    {
+        if ($global || ($user && $asset->owner_user_id === $user->id)) {
+            return;
+        }
+
+        abort(404);
+    }
+
     private function makeUniqueKey(UploadedFile $file, string $sha256): string
     {
         $key = $this->keyFactory->make($file, $sha256);
@@ -129,5 +208,17 @@ class AssetRouterService
         } while (AssetRouterAsset::query()->where('key', $candidate)->exists());
 
         return $candidate;
+    }
+
+    private function uploadedFile(Request $request): UploadedFile
+    {
+        foreach (['file', 'image', 'source', 'smfile'] as $field) {
+            $file = $request->file($field);
+            if ($file instanceof UploadedFile) {
+                return $file;
+            }
+        }
+
+        abort(422, 'No upload file found.');
     }
 }

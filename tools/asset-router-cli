@@ -171,6 +171,71 @@ async function list(args) {
   print(args, payload, data => data.data.assets.data.map(asset => asset.url).join('\n'))
 }
 
+async function get(args) {
+  const id = args._[1]
+  if (!id) {
+    throw new Error('get requires an asset id')
+  }
+
+  if (!token(args)) {
+    throw new Error('ASSET_ROUTER_TOKEN or --token is required for get')
+  }
+
+  const payload = await request(args, 'GET', `/assets/${encodeURIComponent(id)}`)
+  print(args, payload, data => [
+    `id: ${data.data.asset.id}`,
+    `key: ${data.data.asset.key}`,
+    `url: ${data.data.links.url}`,
+    `visibility: ${data.data.asset.visibility}`,
+    `status: ${data.data.asset.status}`
+  ].join('\n'))
+}
+
+async function update(args) {
+  const id = args._[1]
+  if (!id) {
+    throw new Error('update requires an asset id')
+  }
+
+  if (!token(args)) {
+    throw new Error('ASSET_ROUTER_TOKEN or --token is required for update')
+  }
+
+  const body = {}
+  if (args['display-name']) {
+    body.display_name = args['display-name']
+  }
+  if (args.visibility) {
+    body.visibility = args.visibility
+  }
+
+  if (!Object.keys(body).length) {
+    throw new Error('update requires --display-name or --visibility')
+  }
+
+  const payload = await request(args, 'PUT', `/assets/${encodeURIComponent(id)}`, JSON.stringify(body))
+  print(args, payload, data => data.data.links.url)
+}
+
+async function remove(args) {
+  const id = args._[1]
+  if (!id) {
+    throw new Error('delete requires an asset id')
+  }
+
+  if (!token(args)) {
+    throw new Error('ASSET_ROUTER_TOKEN or --token is required for delete')
+  }
+
+  const params = new URLSearchParams()
+  if (args['delete-object']) {
+    params.set('delete_object', '1')
+  }
+  const suffix = params.toString() ? `?${params.toString()}` : ''
+  const payload = await request(args, 'DELETE', `/assets/${encodeURIComponent(id)}${suffix}`)
+  print(args, payload, data => data.message)
+}
+
 function help() {
   console.log(`asset-router-cli
 
@@ -178,6 +243,9 @@ Usage:
   asset-router-cli status [--base-url URL] [--json]
   asset-router-cli upload FILE [--visibility public|members|private] [--display-name NAME] [--token TOKEN] [--base-url URL] [--json]
   asset-router-cli list [--keyword TEXT] [--visibility public|members|private] [--token TOKEN] [--base-url URL] [--json]
+  asset-router-cli get ASSET_ID [--token TOKEN] [--base-url URL] [--json]
+  asset-router-cli update ASSET_ID [--display-name NAME] [--visibility public|members|private] [--token TOKEN] [--base-url URL] [--json]
+  asset-router-cli delete ASSET_ID [--delete-object] [--token TOKEN] [--base-url URL] [--json]
 
 Environment:
   ASSET_ROUTER_BASE_URL  default: http://localhost/api/asset-router/v1
@@ -197,6 +265,9 @@ async function main() {
   if (command === 'status') return status(args)
   if (command === 'upload') return upload(args)
   if (command === 'list') return list(args)
+  if (command === 'get') return get(args)
+  if (command === 'update') return update(args)
+  if (command === 'delete' || command === 'rm') return remove(args)
 
   throw new Error(`Unknown command: ${command}`)
 }
