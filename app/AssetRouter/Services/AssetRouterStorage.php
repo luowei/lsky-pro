@@ -5,6 +5,7 @@ namespace App\AssetRouter\Services;
 use Aws\S3\S3Client;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 class AssetRouterStorage
@@ -75,6 +76,10 @@ class AssetRouterStorage
 
     private function putR2(string $key, UploadedFile $file): array
     {
+        if ($this->usesCloudflareApi()) {
+            return $this->putR2ViaCloudflareApi($key, $file);
+        }
+
         $client = new S3Client([
             'credentials' => [
                 'key' => config('asset-router.r2.access_key_id'),
@@ -101,6 +106,10 @@ class AssetRouterStorage
 
     private function getR2(string $key): string
     {
+        if ($this->usesCloudflareApi()) {
+            return $this->getR2ViaCloudflareApi($key);
+        }
+
         $result = $this->r2Client()->getObject([
             'Bucket' => config('asset-router.r2.bucket'),
             'Key' => $key,
@@ -111,6 +120,11 @@ class AssetRouterStorage
 
     private function deleteR2(string $key): void
     {
+        if ($this->usesCloudflareApi()) {
+            $this->deleteR2ViaCloudflareApi($key);
+            return;
+        }
+
         $this->r2Client()->deleteObject([
             'Bucket' => config('asset-router.r2.bucket'),
             'Key' => $key,
@@ -128,5 +142,69 @@ class AssetRouterStorage
             'region' => config('asset-router.r2.region'),
             'version' => '2006-03-01',
         ]);
+    }
+
+    private function usesCloudflareApi(): bool
+    {
+        return ! config('asset-router.r2.access_key_id')
+            && ! config('asset-router.r2.secret_access_key')
+            && (bool) config('asset-router.r2.account_id')
+            && (bool) config('asset-router.r2.api_token');
+    }
+
+    private function putR2ViaCloudflareApi(string $key, UploadedFile $file): array
+    {
+        $response = $this->cloudflareR2Request($key)
+            ->withBody(File::get($file->getRealPath()), $file->getMimeType() ?: 'application/octet-stream')
+            ->put($this->cloudflareR2ObjectUrl($key));
+
+        if (! $response->successful()) {
+            throw new RuntimeException("Cloudflare R2 upload failed: {$response->status()} {$response->body()}");
+        }
+
+        $result = $response->json('result') ?: [];
+
+        return [
+            'provider' => 'r2',
+            'provider_key' => $key,
+            'etag' => trim((string) ($result['etag'] ?? $response->header('ETag') ?? ''), '"') ?: null,
+        ];
+    }
+
+    private function getR2ViaCloudflareApi(string $key): string
+    {
+        $response = $this->cloudflareR2Request($key)->get($this->cloudflareR2ObjectUrl($key));
+
+        if (! $response->successful()) {
+            throw new RuntimeException("Cloudflare R2 object not found: {$key}");
+        }
+
+        return $response->body();
+    }
+
+    private function deleteR2ViaCloudflareApi(string $key): void
+    {
+        $response = $this->cloudflareR2Request($key)->delete($this->cloudflareR2ObjectUrl($key));
+
+        if (! $response->successful() && $response->status() !== 404) {
+            throw new RuntimeException("Cloudflare R2 delete failed: {$response->status()} {$response->body()}");
+        }
+    }
+
+    private function cloudflareR2Request(string $key): \Illuminate\Http\Client\PendingRequest
+    {
+        return Http::withToken((string) config('asset-router.r2.api_token'))
+            ->acceptJson()
+            ->timeout(60);
+    }
+
+    private function cloudflareR2ObjectUrl(string $key): string
+    {
+        return sprintf(
+            'https://api.cloudflare.com/client/v4/accounts/%s/r2/buckets/%s/objects/%s',
+            rawurlencode((string) config('asset-router.r2.account_id')),
+            rawurlencode((string) config('asset-router.r2.bucket')),
+            collect(explode('/', $key))->map(fn ($part) => rawurlencode($part))->implode('/')
+        );
     }
 }

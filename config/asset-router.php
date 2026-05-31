@@ -8,6 +8,8 @@ return [
     'local_root' => env('ASSET_ROUTER_LOCAL_ROOT') ?: storage_path('app/asset-router'),
     'r2' => [
         'enabled' => env('ASSET_ROUTER_R2_ENABLED', false),
+        'account_id' => env('R2_ACCOUNT_ID', env('CLOUDFLARE_ACCOUNT_ID')),
+        'api_token' => env('R2_API_TOKEN', env('CLOUDFLARE_API_TOKEN')),
         'endpoint' => env('R2_ENDPOINT'),
         'region' => env('R2_REGION', 'auto'),
         'bucket' => env('R2_BUCKET', 'second-brain-assets-prod'),

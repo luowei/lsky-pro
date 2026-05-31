@@ -303,4 +303,46 @@ class AssetRouterUploadTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.jobs.total', 2);
     }
+
+    public function test_upload_can_write_r2_via_cloudflare_api_token()
+    {
+        config([
+            'asset-router.r2.enabled' => true,
+            'asset-router.r2.account_id' => 'cf-account',
+            'asset-router.r2.api_token' => 'cf-token',
+            'asset-router.r2.access_key_id' => null,
+            'asset-router.r2.secret_access_key' => null,
+            'asset-router.r2.bucket' => 'second-brain-assets-prod',
+            'asset-router.public_base_url' => 'https://assets.example.test',
+        ]);
+
+        Http::fake([
+            'api.cloudflare.com/client/v4/accounts/cf-account/r2/buckets/second-brain-assets-prod/objects/*' => Http::response([
+                'success' => true,
+                'result' => [
+                    'etag' => 'r2-etag',
+                ],
+            ], 200),
+        ]);
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('asset-router.upload.store'), [
+            'file' => UploadedFile::fake()->create('asset.png', 8, 'image/png'),
+            'visibility' => 'public',
+        ])->assertRedirect(route('asset-router.upload'));
+
+        $asset = AssetRouterAsset::query()->firstOrFail();
+
+        Http::assertSent(fn ($request) => $request->method() === 'PUT'
+            && str_contains($request->url(), "/objects/{$asset->key}")
+            && $request->hasHeader('Authorization', 'Bearer cf-token'));
+
+        $this->assertDatabaseHas('asset_router_provider_objects', [
+            'asset_id' => $asset->id,
+            'provider' => 'r2',
+            'etag' => 'r2-etag',
+            'status' => 'present',
+        ]);
+    }
 }
