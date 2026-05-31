@@ -74,6 +74,26 @@ class AssetController extends Controller
         return $this->success('删除成功');
     }
 
+    public function links(Request $request, AssetRouterAsset $asset, AssetRouterService $service): Response
+    {
+        $service->assertCanManage($asset, $request->user());
+
+        return $this->success('success', [
+            'asset' => $asset,
+            'links' => $asset->links,
+        ]);
+    }
+
+    public function mirror(Request $request, AssetRouterAsset $asset, AssetRouterService $service): Response
+    {
+        $service->assertCanManage($asset, $request->user());
+        $job = $service->queueMirror($asset);
+
+        return $this->success('镜像任务已排队', [
+            'job' => $job,
+        ]);
+    }
+
     public function picgoStore(AssetUploadRequest $request, AssetRouterService $service): Response
     {
         $asset = $service->upload($request, $request->user());

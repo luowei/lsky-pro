@@ -236,6 +236,66 @@ async function remove(args) {
   print(args, payload, data => data.message)
 }
 
+async function links(args) {
+  const id = args._[1]
+  if (!id) {
+    throw new Error('links requires an asset id')
+  }
+
+  if (!token(args)) {
+    throw new Error('ASSET_ROUTER_TOKEN or --token is required for links')
+  }
+
+  const payload = await request(args, 'GET', `/assets/${encodeURIComponent(id)}/links`)
+  const format = args.format || 'url'
+  print(args, payload, data => data.data.links[format] || data.data.links.url)
+}
+
+async function mirror(args) {
+  const id = args._[1]
+  if (!id) {
+    throw new Error('mirror requires an asset id')
+  }
+
+  if (!token(args)) {
+    throw new Error('ASSET_ROUTER_TOKEN or --token is required for mirror')
+  }
+
+  const payload = await request(args, 'POST', `/assets/${encodeURIComponent(id)}/mirror`, '{}')
+  print(args, payload, data => data.data.job.id)
+}
+
+async function probe(args) {
+  const id = args._[1]
+  if (!id) {
+    throw new Error('probe requires an asset id')
+  }
+
+  if (!token(args)) {
+    throw new Error('ASSET_ROUTER_TOKEN or --token is required for probe')
+  }
+
+  const payload = await request(args, 'POST', `/assets/${encodeURIComponent(id)}/probe`, '{}')
+  print(args, payload, data => data.data.providers.map(provider => `${provider.provider}: ${provider.status}`).join('\n'))
+}
+
+async function jobs(args) {
+  if (!token(args)) {
+    throw new Error('ASSET_ROUTER_TOKEN or --token is required for jobs')
+  }
+
+  const params = new URLSearchParams()
+  for (const key of ['status', 'type', 'page', 'per_page']) {
+    if (args[key]) {
+      params.set(key, args[key])
+    }
+  }
+
+  const suffix = params.toString() ? `?${params.toString()}` : ''
+  const payload = await request(args, 'GET', `/jobs${suffix}`)
+  print(args, payload, data => data.data.jobs.data.map(job => `${job.id} ${job.type} ${job.status}`).join('\n'))
+}
+
 function help() {
   console.log(`asset-router-cli
 
@@ -246,6 +306,10 @@ Usage:
   asset-router-cli get ASSET_ID [--token TOKEN] [--base-url URL] [--json]
   asset-router-cli update ASSET_ID [--display-name NAME] [--visibility public|members|private] [--token TOKEN] [--base-url URL] [--json]
   asset-router-cli delete ASSET_ID [--delete-object] [--token TOKEN] [--base-url URL] [--json]
+  asset-router-cli links ASSET_ID [--format url|markdown|html|bbcode] [--token TOKEN] [--base-url URL] [--json]
+  asset-router-cli mirror ASSET_ID [--token TOKEN] [--base-url URL] [--json]
+  asset-router-cli probe ASSET_ID [--token TOKEN] [--base-url URL] [--json]
+  asset-router-cli jobs [--status queued|failed|succeeded] [--type TYPE] [--token TOKEN] [--base-url URL] [--json]
 
 Environment:
   ASSET_ROUTER_BASE_URL  default: http://localhost/api/asset-router/v1
@@ -268,6 +332,10 @@ async function main() {
   if (command === 'get') return get(args)
   if (command === 'update') return update(args)
   if (command === 'delete' || command === 'rm') return remove(args)
+  if (command === 'links') return links(args)
+  if (command === 'mirror') return mirror(args)
+  if (command === 'probe') return probe(args)
+  if (command === 'jobs') return jobs(args)
 
   throw new Error(`Unknown command: ${command}`)
 }

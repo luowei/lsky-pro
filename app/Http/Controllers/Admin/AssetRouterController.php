@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\AssetRouter\Services\AssetRouterMirrorService;
+use App\AssetRouter\Services\AssetRouterProviderStatusService;
 use App\AssetRouter\Services\AssetRouterService;
 use App\AssetRouter\Services\SecondBrainAssetSyncService;
 use App\Http\Controllers\Controller;
@@ -39,6 +40,13 @@ class AssetRouterController extends Controller
             ->withQueryString();
 
         return view('admin.asset-router.jobs', compact('jobs'));
+    }
+
+    public function providers(AssetRouterProviderStatusService $service): View
+    {
+        $providers = $service->summary();
+
+        return view('admin.asset-router.providers', compact('providers'));
     }
 
     public function retry(AssetRouterJob $job): RedirectResponse

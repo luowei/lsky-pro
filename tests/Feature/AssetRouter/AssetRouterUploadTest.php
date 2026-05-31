@@ -255,4 +255,52 @@ class AssetRouterUploadTest extends TestCase
             'status' => 'present',
         ]);
     }
+
+    public function test_api_can_report_providers_links_jobs_and_probe_asset()
+    {
+        config([
+            'asset-router.r2.enabled' => false,
+            'asset-router.local_root' => storage_path('framework/testing/asset-router'),
+            'asset-router.public_base_url' => 'https://assets.example.test',
+            'asset-router.members_base_url' => 'https://assets.example.test/m',
+            'asset-router.github.repo' => 'luowei/second-brain-image-assets',
+            'asset-router.github.branch' => 'main',
+            'asset-router.github.jsdelivr_base_url' => 'https://cdn.jsdelivr.net/gh/luowei/second-brain-image-assets@main',
+        ]);
+
+        Http::fake([
+            'cdn.jsdelivr.net/*' => Http::response('', 200),
+        ]);
+
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/asset-router/v1/assets', [
+            'file' => UploadedFile::fake()->create('agent-upload.png', 8, 'image/png'),
+            'visibility' => 'public',
+        ])->assertOk();
+
+        $asset = AssetRouterAsset::query()->firstOrFail();
+
+        $this->getJson('/api/asset-router/v1/providers')
+            ->assertOk()
+            ->assertJsonPath('data.providers.0.provider', 'r2');
+
+        $this->getJson("/api/asset-router/v1/assets/{$asset->id}/links")
+            ->assertOk()
+            ->assertJsonPath('data.links.url', "https://assets.example.test/{$asset->key}");
+
+        $this->postJson("/api/asset-router/v1/assets/{$asset->id}/probe")
+            ->assertOk()
+            ->assertJsonPath('data.providers.0.status', 'present')
+            ->assertJsonPath('data.providers.1.provider', 'github-jsdelivr');
+
+        $this->postJson("/api/asset-router/v1/assets/{$asset->id}/mirror")
+            ->assertOk()
+            ->assertJsonPath('data.job.type', 'mirror_public_to_github');
+
+        $this->getJson('/api/asset-router/v1/jobs?type=mirror_public_to_github')
+            ->assertOk()
+            ->assertJsonPath('data.jobs.total', 2);
+    }
 }

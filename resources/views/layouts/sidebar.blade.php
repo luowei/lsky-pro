@@ -90,6 +90,10 @@
                     <x-slot name="icon"><i class="fas fa-route text-blue-500"></i></x-slot>
                     <x-slot name="name">Asset 资源管理</x-slot>
                 </x-nav-link>
+                <x-nav-link :href="route('admin.asset-router.providers')" :active="request()->is('admin/asset-router/providers*')">
+                    <x-slot name="icon"><i class="fas fa-radar text-blue-500"></i></x-slot>
+                    <x-slot name="name">Asset Provider</x-slot>
+                </x-nav-link>
                 <x-nav-link :href="route('admin.asset-router.jobs')" :active="request()->is('admin/asset-router/jobs*')">
                     <x-slot name="icon"><i class="fas fa-tasks text-blue-500"></i></x-slot>
                     <x-slot name="name">Asset 任务</x-slot>

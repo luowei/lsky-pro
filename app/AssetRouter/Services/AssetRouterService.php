@@ -140,22 +140,31 @@ class AssetRouterService
             ])->save();
 
             if ($willBePublic && ! $wasPublic) {
-                AssetRouterJob::query()->create([
-                    'asset_id' => $asset->id,
-                    'type' => 'mirror_public_to_github',
-                    'status' => 'queued',
-                    'payload' => [
-                        'key' => $asset->key,
-                        'repo' => config('asset-router.github.repo'),
-                        'branch' => config('asset-router.github.branch'),
-                    ],
-                ]);
+                $this->queueMirror($asset);
             }
 
             $this->secondBrainSync->queue($asset, 'asset.visibility_changed');
         });
 
         return $asset->fresh(['providerObjects', 'jobs']);
+    }
+
+    public function queueMirror(AssetRouterAsset $asset): AssetRouterJob
+    {
+        if (! AssetRouterVisibility::isPublic($asset->visibility)) {
+            abort(422, 'Only public assets can be mirrored to GitHub/jsDelivr.');
+        }
+
+        return AssetRouterJob::query()->create([
+            'asset_id' => $asset->id,
+            'type' => 'mirror_public_to_github',
+            'status' => 'queued',
+            'payload' => [
+                'key' => $asset->key,
+                'repo' => config('asset-router.github.repo'),
+                'branch' => config('asset-router.github.branch'),
+            ],
+        ]);
     }
 
     public function delete(AssetRouterAsset $asset, bool $deleteObject = false): void

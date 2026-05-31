@@ -30,4 +30,7 @@ return [
         'sync_url' => env('ASSET_ROUTER_SECOND_BRAIN_SYNC_URL'),
         'sync_token' => env('ASSET_ROUTER_SECOND_BRAIN_SYNC_TOKEN'),
     ],
+    'lsky' => [
+        'base_url' => env('LSKY_ASSET_BASE_URL'),
+    ],
 ];
