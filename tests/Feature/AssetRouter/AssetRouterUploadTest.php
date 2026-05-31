@@ -469,12 +469,35 @@ class AssetRouterUploadTest extends TestCase
             'url' => $asset->canonical_url,
             'status' => 'present',
         ]);
+        $asset->providerObjects()->create([
+            'provider' => 'github-jsdelivr',
+            'provider_key' => '2026/05/31/imported.png',
+            'url' => 'https://cdn.jsdelivr.net/gh/luowei/second-brain-image-assets@main/2026/05/31/imported.png',
+            'status' => 'present',
+        ]);
 
         $this->assertDatabaseHas('asset_router_assets', [
             'id' => $asset->id,
             'owner_user_id' => null,
             'display_name' => 'Imported public asset',
         ]);
+
+        $service = app(\App\AssetRouter\Services\AssetRouterService::class);
+        $this->assertSame(1, $service->search(\Illuminate\Http\Request::create('/ar/images', 'GET', [
+            'provider' => 'r2',
+        ]), $user)->total());
+        $this->assertSame(1, $service->search(\Illuminate\Http\Request::create('/ar/images', 'GET', [
+            'provider' => 'github-jsdelivr',
+        ]), $user)->total());
+
+        $this->actingAs($user)->get(route('asset-router.images', ['provider' => 'r2']))
+            ->assertOk()
+            ->assertSee('Imported public asset')
+            ->assertSee('复制链接');
+
+        $this->actingAs($user)->get(route('asset-router.images', ['provider' => 'github-jsdelivr']))
+            ->assertOk()
+            ->assertSee('Imported public asset');
 
         $this->actingAs($user)->get(route('asset-router.images.show', $asset))
             ->assertOk()

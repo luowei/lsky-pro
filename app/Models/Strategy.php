@@ -71,16 +71,17 @@ class Strategy extends Model
             $strategy->configs['url'] = rtrim($strategy->configs->get('url'), '/');
             if ($strategy->key == StrategyKey::Local) {
                 $symlink = self::getRootPath($strategy->configs['url']);
+                $symlinkPath = public_path($symlink);
                 $target = $strategy->configs['root'] ?: config('filesystems.disks.uploads.root');
-                if (! is_dir(public_path($symlink))) {
-                    (new Filesystem())->link($target, $symlink);
+                if (! is_dir($symlinkPath)) {
+                    (new Filesystem())->link($target, $symlinkPath);
                 }
                 // 是否需要移除旧的符号链接
                 $url = $strategy->getOriginal('configs')['url'] ?? '';
                 if ($url) {
                     $oldSymlink = self::getRootPath($url);
                     if ($oldSymlink != $symlink) {
-                        @unlink($oldSymlink);
+                        @unlink(public_path($oldSymlink));
                     }
                 }
             }

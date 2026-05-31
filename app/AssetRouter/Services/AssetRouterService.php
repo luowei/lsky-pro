@@ -136,7 +136,7 @@ class AssetRouterService
                 });
             })
             ->when($request->query('visibility'), fn ($query, $visibility) => $query->where('visibility', $visibility))
-            ->when($includeProviderFilter && $request->query('provider'), function ($query, $provider) {
+            ->when($includeProviderFilter ? $request->query('provider') : null, function ($query, $provider) {
                 $query->whereHas('providerObjects', fn ($query) => $query->where('provider', $provider));
             });
     }
