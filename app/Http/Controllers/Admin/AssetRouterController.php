@@ -32,19 +32,6 @@ class AssetRouterController extends Controller
         return view('admin.asset-router.show', compact('asset'));
     }
 
-    public function jobs(Request $request): View
-    {
-        $jobs = AssetRouterJob::query()
-            ->with('asset')
-            ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
-            ->when($request->query('type'), fn ($query, $type) => $query->where('type', $type))
-            ->latest()
-            ->paginate((int) $request->query('per_page', 40))
-            ->withQueryString();
-
-        return view('admin.asset-router.jobs', compact('jobs'));
-    }
-
     public function providers(AssetRouterProviderStatusService $service): View
     {
         $providers = $service->summary();

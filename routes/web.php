@@ -92,7 +92,6 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth.admin']], function () 
         Route::get('providers', [AdminAssetRouterController::class, 'providers'])->name('admin.asset-router.providers');
         Route::post('providers/import', [AdminAssetRouterController::class, 'importProviders'])->name('admin.asset-router.providers.import');
         Route::get('assets/{asset}', [AdminAssetRouterController::class, 'show'])->name('admin.asset-router.assets.show');
-        Route::get('jobs', [AdminAssetRouterController::class, 'jobs'])->name('admin.asset-router.jobs');
         Route::post('jobs/{job}/retry', [AdminAssetRouterController::class, 'retry'])->name('admin.asset-router.jobs.retry');
         Route::post('jobs/{job}/run', [AdminAssetRouterController::class, 'run'])->name('admin.asset-router.jobs.run');
     });

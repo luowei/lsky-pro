@@ -28,7 +28,6 @@
                 <option value="private" @selected(request('visibility') === 'private')>私有</option>
             </select>
             <button class="py-2 px-4 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md text-sm font-semibold">在当前分类搜索</button>
-            <a href="{{ route('admin.asset-router.jobs') }}" class="py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm">任务</a>
             <a href="{{ route('admin.asset-router.providers') }}" class="py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm">Provider</a>
         </form>
 

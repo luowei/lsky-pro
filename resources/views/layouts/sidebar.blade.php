@@ -58,10 +58,6 @@
                             <x-slot name="icon"><i class="fas fa-radar text-blue-500"></i></x-slot>
                             <x-slot name="name">Provider 状态</x-slot>
                         </x-nav-link>
-                        <x-nav-link :href="route('admin.asset-router.jobs')" :active="request()->is('admin/asset-router/jobs*')">
-                            <x-slot name="icon"><i class="fas fa-tasks text-blue-500"></i></x-slot>
-                            <x-slot name="name">任务</x-slot>
-                        </x-nav-link>
                     @endif
                     <x-nav-link :href="route('asset-router.api')" :active="request()->routeIs('asset-router.api')">
                         <x-slot name="icon"><i class="fas fa-terminal text-blue-500"></i></x-slot>

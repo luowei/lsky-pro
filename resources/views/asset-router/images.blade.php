@@ -43,8 +43,6 @@
             <div id="images-grid" class="px-2 py-3">
                 @forelse($assets as $asset)
                     @php
-                        $width = $asset->width ?: 320;
-                        $height = $asset->height ?: 180;
                         $providers = $asset->providerObjects->pluck('provider')->unique()->values()->all();
                         $links = $asset->links->all();
                         $payload = [
@@ -79,8 +77,10 @@
                         <img alt="{{ $asset->display_name }}"
                              data-original="{{ $asset->url }}"
                              src="{{ $asset->url }}"
-                             width="{{ $width }}"
-                             height="{{ $height }}"
+                             @if($asset->width && $asset->height)
+                                 width="{{ $asset->width }}"
+                                 height="{{ $asset->height }}"
+                             @endif
                         >
                     </a>
                 @empty
@@ -178,7 +178,7 @@
                     margins: 16,
                     captions: false,
                     border: 10,
-                    waitThumbnailsLoad: false,
+                    waitThumbnailsLoad: true,
                 });
                 new Viewer(document.getElementById('images-grid'), {url: 'data-original'});
             }
