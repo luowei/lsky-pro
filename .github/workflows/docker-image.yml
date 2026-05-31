@@ -34,7 +34,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/lsky-pro
           tags: |
-            type=raw,value=asset-router,enable=${{ github.ref == 'refs/heads/feature/asset-router-control-plane' }}
+            type=raw,value=asset-router,enable=${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feature/asset-router-control-plane' }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
             type=sha,prefix=
             type=ref,event=tag
