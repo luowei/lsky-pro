@@ -1,0 +1,207 @@
+#!/usr/bin/env node
+
+const fs = require('fs')
+const path = require('path')
+
+const MIME_TYPES = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.avif': 'image/avif',
+  '.pdf': 'application/pdf',
+  '.txt': 'text/plain',
+  '.md': 'text/markdown',
+  '.json': 'application/json'
+}
+
+function parseArgs(argv) {
+  const args = { _: [] }
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]
+    if (!arg.startsWith('--')) {
+      args._.push(arg)
+      continue
+    }
+
+    const eq = arg.indexOf('=')
+    if (eq !== -1) {
+      args[arg.slice(2, eq)] = arg.slice(eq + 1)
+      continue
+    }
+
+    const key = arg.slice(2)
+    const next = argv[i + 1]
+    if (!next || next.startsWith('--')) {
+      args[key] = true
+      continue
+    }
+
+    args[key] = next
+    i++
+  }
+
+  return args
+}
+
+function baseUrl(args) {
+  return String(args['base-url'] || process.env.ASSET_ROUTER_BASE_URL || 'http://localhost/api/asset-router/v1').replace(/\/$/, '')
+}
+
+function token(args) {
+  return String(args.token || process.env.ASSET_ROUTER_TOKEN || '')
+}
+
+function headers(args, json = true) {
+  const value = {
+    Accept: 'application/json'
+  }
+
+  if (json) {
+    value['Content-Type'] = 'application/json'
+  }
+
+  const bearer = token(args)
+  if (bearer) {
+    value.Authorization = `Bearer ${bearer}`
+  }
+
+  return value
+}
+
+async function request(args, method, endpoint, body) {
+  const response = await fetch(`${baseUrl(args)}${endpoint}`, {
+    method,
+    headers: headers(args, body && !(body instanceof FormData)),
+    body
+  })
+  const text = await response.text()
+  let payload = null
+
+  try {
+    payload = text ? JSON.parse(text) : null
+  } catch (_e) {
+    payload = { raw: text }
+  }
+
+  if (!response.ok) {
+    const message = payload?.message || payload?.raw || response.statusText
+    throw new Error(`${response.status} ${message}`)
+  }
+
+  return payload
+}
+
+function print(args, payload, fallback) {
+  if (args.json) {
+    console.log(JSON.stringify(payload, null, 2))
+    return
+  }
+
+  console.log(fallback(payload))
+}
+
+async function status(args) {
+  const payload = await request(args, 'GET', '/status')
+  print(args, payload, data => [
+    `service: ${data.data.service}`,
+    `enabled: ${data.data.enabled}`,
+    `public: ${data.data.public_base_url}`,
+    `members: ${data.data.members_base_url}`,
+    `r2: ${data.data.r2_enabled ? 'enabled' : 'disabled'}`,
+    `github: ${data.data.github_repo}`
+  ].join('\n'))
+}
+
+async function upload(args) {
+  const filePath = args._[1]
+  if (!filePath) {
+    throw new Error('upload requires a file path')
+  }
+
+  if (!token(args)) {
+    throw new Error('ASSET_ROUTER_TOKEN or --token is required for upload')
+  }
+
+  const absolute = path.resolve(filePath)
+  const filename = path.basename(absolute)
+  const extension = path.extname(filename).toLowerCase()
+  const contents = fs.readFileSync(absolute)
+  const form = new FormData()
+
+  form.append('file', new Blob([contents], {
+    type: MIME_TYPES[extension] || 'application/octet-stream'
+  }), filename)
+  form.append('visibility', args.visibility || 'public')
+
+  if (args['display-name']) {
+    form.append('display_name', args['display-name'])
+  }
+
+  const response = await fetch(`${baseUrl(args)}/assets`, {
+    method: 'POST',
+    headers: headers(args, false),
+    body: form
+  })
+  const payload = await response.json()
+
+  if (!response.ok) {
+    throw new Error(`${response.status} ${payload.message || response.statusText}`)
+  }
+
+  print(args, payload, data => data.data.links.url)
+}
+
+async function list(args) {
+  if (!token(args)) {
+    throw new Error('ASSET_ROUTER_TOKEN or --token is required for list')
+  }
+
+  const params = new URLSearchParams()
+  for (const key of ['keyword', 'visibility', 'page', 'per_page']) {
+    if (args[key]) {
+      params.set(key, args[key])
+    }
+  }
+
+  const suffix = params.toString() ? `?${params.toString()}` : ''
+  const payload = await request(args, 'GET', `/assets${suffix}`)
+  print(args, payload, data => data.data.assets.data.map(asset => asset.url).join('\n'))
+}
+
+function help() {
+  console.log(`asset-router-cli
+
+Usage:
+  asset-router-cli status [--base-url URL] [--json]
+  asset-router-cli upload FILE [--visibility public|members|private] [--display-name NAME] [--token TOKEN] [--base-url URL] [--json]
+  asset-router-cli list [--keyword TEXT] [--visibility public|members|private] [--token TOKEN] [--base-url URL] [--json]
+
+Environment:
+  ASSET_ROUTER_BASE_URL  default: http://localhost/api/asset-router/v1
+  ASSET_ROUTER_TOKEN     Sanctum token issued by lsky-pro
+`)
+}
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2))
+  const command = args._[0]
+
+  if (!command || args.help || args.h) {
+    help()
+    return
+  }
+
+  if (command === 'status') return status(args)
+  if (command === 'upload') return upload(args)
+  if (command === 'list') return list(args)
+
+  throw new Error(`Unknown command: ${command}`)
+}
+
+main().catch(error => {
+  console.error(error.message)
+  process.exit(1)
+})

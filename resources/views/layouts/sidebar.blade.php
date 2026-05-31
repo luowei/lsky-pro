@@ -9,21 +9,41 @@
 
     <div class="flex flex-col justify-between container mx-auto p-4 pb-12 h-full overflow-scroll overscroll-contain scrollbar-none">
         <div>
-            <div class="flex flex-col space-y-3 mb-5">
-                <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                    <x-slot name="icon"><i class="fas fa-tachometer-alt text-blue-500"></i></x-slot>
+            <div class="flex flex-col space-y-2 mb-5">
+                <p class="text-gray-400 text-sm mx-4">Asset Router</p>
+                <x-nav-link :href="route('asset-router.dashboard')" :active="request()->routeIs('asset-router.dashboard')">
+                    <x-slot name="icon"><i class="fas fa-route text-blue-500"></i></x-slot>
                     <x-slot name="name">仪表盘</x-slot>
                 </x-nav-link>
-            </div>
-            <div class="flex flex-col space-y-2 mb-5">
-                <p class="text-gray-400 text-sm mx-4">我的</p>
-                <x-nav-link :href="route('upload')" :active="request()->routeIs('upload')">
+                <x-nav-link :href="route('asset-router.upload')" :active="request()->routeIs('asset-router.upload')">
                     <x-slot name="icon"><i class="fas fa-cloud-upload-alt text-blue-500"></i></x-slot>
                     <x-slot name="name">上传图片</x-slot>
                 </x-nav-link>
-                <x-nav-link :href="route('images')" :active="request()->routeIs('images')">
+                <x-nav-link :href="route('asset-router.images')" :active="request()->routeIs('asset-router.images')">
                     <x-slot name="icon"><i class="fas fa-images text-blue-500"></i></x-slot>
                     <x-slot name="name">我的图片</x-slot>
+                </x-nav-link>
+                <x-nav-link :href="route('asset-router.api')" :active="request()->routeIs('asset-router.api')">
+                    <x-slot name="icon"><i class="fas fa-terminal text-blue-500"></i></x-slot>
+                    <x-slot name="name">接口</x-slot>
+                </x-nav-link>
+            </div>
+            <div class="flex flex-col space-y-2 mb-5">
+                <p class="text-gray-400 text-sm mx-4">Lsky Legacy</p>
+                <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                    <x-slot name="icon"><i class="fas fa-tachometer-alt text-blue-500"></i></x-slot>
+                    <x-slot name="name">Lsky 仪表盘</x-slot>
+                </x-nav-link>
+            </div>
+            <div class="flex flex-col space-y-2 mb-5">
+                <p class="text-gray-400 text-sm mx-4">Lsky 我的</p>
+                <x-nav-link :href="route('upload')" :active="request()->routeIs('upload')">
+                    <x-slot name="icon"><i class="fas fa-cloud-upload-alt text-blue-500"></i></x-slot>
+                    <x-slot name="name">Lsky 上传图片</x-slot>
+                </x-nav-link>
+                <x-nav-link :href="route('images')" :active="request()->routeIs('images')">
+                    <x-slot name="icon"><i class="fas fa-images text-blue-500"></i></x-slot>
+                    <x-slot name="name">Lsky 我的图片</x-slot>
                 </x-nav-link>
                 <x-nav-link :href="route('settings')" :active="request()->routeIs('settings')">
                     <x-slot name="icon"><i class="fas fa-user-cog text-blue-500"></i></x-slot>
@@ -32,7 +52,7 @@
             </div>
             @if(\App\Utils::config(\App\Enums\ConfigKey::IsEnableGallery) || \App\Utils::config(\App\Enums\ConfigKey::IsEnableApi))
             <div class="flex flex-col space-y-2 mb-5">
-                <p class="text-gray-400 text-sm mx-4">公共</p>
+                <p class="text-gray-400 text-sm mx-4">Lsky 公共</p>
                 @if(\App\Utils::config(\App\Enums\ConfigKey::IsEnableGallery))
                 <x-nav-link :href="route('gallery')" :active="request()->routeIs('gallery')">
                     <x-slot name="icon"><i class="fas fa-chalkboard text-blue-500"></i></x-slot>
@@ -42,7 +62,7 @@
                 @if(\App\Utils::config(\App\Enums\ConfigKey::IsEnableApi))
                 <x-nav-link :href="route('api')" :active="request()->routeIs('api')">
                     <x-slot name="icon"><i class="fas fa-link text-blue-500"></i></x-slot>
-                    <x-slot name="name">接口</x-slot>
+                    <x-slot name="name">Lsky 接口</x-slot>
                 </x-nav-link>
                 @endif
             </div>
@@ -64,7 +84,7 @@
                 </x-nav-link>
                 <x-nav-link :href="route('admin.images')" :active="request()->is('admin/images*')">
                     <x-slot name="icon"><i class="fas fa-images text-blue-500"></i></x-slot>
-                    <x-slot name="name">图片管理</x-slot>
+                    <x-slot name="name">Lsky 图片管理</x-slot>
                 </x-nav-link>
                 <x-nav-link :href="route('admin.strategies')" :active="request()->is('admin/strategies*')">
                     <x-slot name="icon"><i class="fas fa-hdd text-blue-500"></i></x-slot>
@@ -78,6 +98,7 @@
             @endif
         </div>
 
+        @unless(request()->routeIs('asset-router.*'))
         <div id="capacity-progress" class="flex flex-col space-y-2 mb-5 px-5 w-full mt-10">
             <p class="text-gray-700 text-sm">容量使用</p>
             <progress class="w-full h-1.5" value="{{ Auth::user()->use_capacity }}" max="{{ Auth::user()->capacity }}"></progress>
@@ -87,23 +108,26 @@
                 <span class="total">{{ \App\Utils::formatSize(Auth::user()->capacity * 1024) }}</span>
             </p>
         </div>
+        @endunless
     </div>
 </nav>
 
 @push('scripts')
     <script>
         let $progress = $('#capacity-progress progress');
-        let value = $progress.attr('value') / $progress.attr('max') * 100;
-        let str = 'green';
-        if (value > 90) {
-            str = 'red';
-        } else if (value > 70) {
-            str = 'orange';
-        } else if (value > 60) {
-            str = 'yellow';
-        } else if (value > 40) {
-            str = 'yellowgreen';
+        if ($progress.length) {
+            let value = $progress.attr('value') / $progress.attr('max') * 100;
+            let str = 'green';
+            if (value > 90) {
+                str = 'red';
+            } else if (value > 70) {
+                str = 'orange';
+            } else if (value > 60) {
+                str = 'yellow';
+            } else if (value > 40) {
+                str = 'yellowgreen';
+            }
+            $progress.addClass(str)
         }
-        $progress.addClass(str)
     </script>
 @endpush
