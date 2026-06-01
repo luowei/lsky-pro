@@ -34,13 +34,21 @@ class ApiTokenManagementTest extends TestCase
         ]);
 
         $response->assertRedirect();
-        $response->assertSessionHas('plain_api_token');
+        $response->assertSessionMissing('plain_api_token');
         $this->assertDatabaseHas('personal_access_tokens', [
             'tokenable_id' => $user->id,
             'name' => 'PicGo Test',
         ]);
 
         $token = $user->tokens()->firstOrFail();
+        $this->assertNotEmpty($token->encrypted_plain_text_token);
+
+        $this->actingAs($user)
+            ->get(route('asset-router.api'))
+            ->assertOk()
+            ->assertSee('Token 默认脱敏展示')
+            ->assertSee('复制')
+            ->assertSee('toggle-api-token');
 
         $this->actingAs($user)
             ->delete(route('user.api-tokens.destroy', $token))
@@ -67,5 +75,17 @@ class ApiTokenManagementTest extends TestCase
         $this->assertDatabaseHas('personal_access_tokens', [
             'id' => $otherToken->id,
         ]);
+    }
+
+    public function test_legacy_tokens_without_saved_plain_text_are_marked_unavailable()
+    {
+        $user = User::factory()->create();
+        View::share('_group', $user->group);
+        $user->createToken('Legacy Token');
+
+        $this->actingAs($user)
+            ->get(route('asset-router.api'))
+            ->assertOk()
+            ->assertSee('旧 Token 不可查看，请重新生成');
     }
 }

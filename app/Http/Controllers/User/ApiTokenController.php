@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 
 class ApiTokenController extends Controller
 {
@@ -15,10 +16,13 @@ class ApiTokenController extends Controller
         ]);
 
         $name = $validated['name'] ?: 'PicGo';
-        $token = $request->user()->createToken($name)->plainTextToken;
+        $createdToken = $request->user()->createToken($name);
+        $token = $createdToken->plainTextToken;
+        $createdToken->accessToken->forceFill([
+            'encrypted_plain_text_token' => Crypt::encryptString($token),
+        ])->save();
 
-        return back()->with('plain_api_token', $token)
-            ->with('success', 'Token 已生成，请立即复制保存。');
+        return back()->with('success', 'Token 已生成，可在列表中复制或显示明文。');
     }
 
     public function destroy(Request $request, string $tokenId): RedirectResponse
