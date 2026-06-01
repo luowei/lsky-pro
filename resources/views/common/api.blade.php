@@ -2,6 +2,10 @@
 
 <x-app-layout>
     <div class="my-6 md:my-9">
+        <div class="mb-10">
+            <x-api-token-manager title="Lsky API Token" default-name="PicGo Lsky Legacy" />
+        </div>
+
         <p class="text-xl mb-2 text-gray-800 font-semibold">接口说明</p>
         <div class="space-y-4 bg-white p-3 rounded-md mb-10 shadow-custom">
             <div>

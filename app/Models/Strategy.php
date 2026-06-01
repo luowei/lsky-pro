@@ -74,7 +74,10 @@ class Strategy extends Model
                 $symlinkPath = public_path($symlink);
                 $target = $strategy->configs['root'] ?: config('filesystems.disks.uploads.root');
                 if (! is_dir($symlinkPath)) {
-                    (new Filesystem())->link($target, $symlinkPath);
+                    if (is_link($symlinkPath) || file_exists($symlinkPath)) {
+                        @unlink($symlinkPath);
+                    }
+                    @symlink($target, $symlinkPath);
                 }
                 // 是否需要移除旧的符号链接
                 $url = $strategy->getOriginal('configs')['url'] ?? '';

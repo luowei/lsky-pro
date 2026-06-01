@@ -20,6 +20,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\User\UserController;
 use App\Http\Controllers\User\ImageController;
 use App\Http\Controllers\User\AlbumController;
+use App\Http\Controllers\User\ApiTokenController;
 use App\Http\Controllers\Common\GalleryController;
 use App\Http\Controllers\Common\ApiController;
 
@@ -54,6 +55,10 @@ Route::group(['middleware' => ['auth']], function () {
     ], function () {
         Route::get('', [ApiController::class, 'index'])->name('api');
     });
+
+    Route::post('user/api-tokens', [ApiTokenController::class, 'store'])->name('user.api-tokens.store');
+    Route::delete('user/api-tokens', [ApiTokenController::class, 'clear'])->name('user.api-tokens.clear');
+    Route::delete('user/api-tokens/{token}', [ApiTokenController::class, 'destroy'])->name('user.api-tokens.destroy');
 
     Route::get('upload', fn () => view('user.upload'))->name('upload');
     Route::get('images', [ImageController::class, 'index'])->name('images');

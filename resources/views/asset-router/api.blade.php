@@ -2,6 +2,8 @@
 
 <x-app-layout>
     <div class="my-6 md:my-9 space-y-6">
+        <x-api-token-manager title="Asset Router / PicGo Token" default-name="PicGo Asset Router" />
+
         <div class="bg-white rounded-md shadow-custom p-4 space-y-3">
             <p class="font-semibold text-gray-700">Base URL</p>
             <x-code>{{ url('/api/asset-router/v1') }}</x-code>
