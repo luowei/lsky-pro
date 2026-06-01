@@ -19,14 +19,16 @@
 [Telegram 群组](https://t.me/lsky_pro)
 
 > [!WARNING]
-> 开源版本已停止维护，不再进行新特性更新和 bug 修复。
+> 开源版本已停止维护，不再进行新特性更新和 bug 修复。(故本仓库fork后做了一些自定义的功能扩展)
 
 > master 分支为未安装三方拓展的版本，通常包含了最新未发布版本的一些实验性新特性和修复补丁，正式版本请点击 [这里](https://github.com/lsky-org/lsky-pro/releases) 下载。  
 > 发现 bug 请提交 [issues](https://github.com/lsky-org/lsky-pro/issues) (提问前建议阅读[提问的智慧](https://github.com/ryanhanwu/How-To-Ask-Questions-The-Smart-Way/blob/main/README-zh_CN.md))  
 > 有任何想法、建议、或分享，请移步 [社区](https://github.com/lsky-org/lsky-pro/discussions)
 
-![看不见图片请使用科学上网](https://user-images.githubusercontent.com/22728201/157242302-bfbd04a0-fb30-4241-800e-cc2b1dad9b19.png)
-![看不见图片请使用科学上网](https://user-images.githubusercontent.com/22728201/157242314-5716d578-fee5-4083-8d91-0d98cb2545d9.png)
+---
+
+![](https://assets.markdev.work/m/i/2026/06/01/c6c8ba9ced0cad8f73d80da621015be7d0179672937a7473f04e3483e9582291.png)
+![](https://assets.markdev.work/m/i/2026/06/01/8c98b87d37b40442254b44eeeebcc8b4aef8cbe0d1b733bf5780a9603eedcab6.png)
 
 ### 🧩 本仓库扩展：Asset Router Control Plane
 
